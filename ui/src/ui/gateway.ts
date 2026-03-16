@@ -99,6 +99,7 @@ function isTrustedRetryEndpoint(url: string): boolean {
 export type GatewayHelloOk = {
   type: "hello-ok";
   protocol: number;
+  canvasHostUrl?: string;
   server?: {
     version?: string;
     connId?: string;

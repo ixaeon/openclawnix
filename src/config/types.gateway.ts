@@ -48,6 +48,11 @@ export type CanvasHostConfig = {
   liveReload?: boolean;
 };
 
+export type OurPagesConfig = {
+  /** Feature mode: enabled (default), read-only, or disabled. */
+  mode?: "enabled" | "read-only" | "disabled";
+};
+
 export type TalkProviderConfig = {
   /** Default voice ID for the provider's Talk mode implementation. */
   voiceId?: string;

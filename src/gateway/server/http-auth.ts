@@ -1,5 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { A2UI_PATH, CANVAS_HOST_PATH, CANVAS_WS_PATH } from "../../canvas-host/a2ui.js";
+
+export const OUR_PAGES_PREFIX = "/__openclaw__/our-pages";
 import { safeEqualSecret } from "../../security/secret-equal.js";
 import type { AuthRateLimiter } from "../auth-rate-limit.js";
 import {
@@ -20,7 +22,9 @@ export function isCanvasPath(pathname: string): boolean {
     pathname.startsWith(`${A2UI_PATH}/`) ||
     pathname === CANVAS_HOST_PATH ||
     pathname.startsWith(`${CANVAS_HOST_PATH}/`) ||
-    pathname === CANVAS_WS_PATH
+    pathname === CANVAS_WS_PATH ||
+    pathname === OUR_PAGES_PREFIX ||
+    pathname.startsWith(`${OUR_PAGES_PREFIX}/`)
   );
 }
 

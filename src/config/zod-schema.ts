@@ -649,6 +649,14 @@ export const OpenClawSchema = z
       })
       .strict()
       .optional(),
+    ourPages: z
+      .object({
+        mode: z
+          .union([z.literal("enabled"), z.literal("read-only"), z.literal("disabled")])
+          .optional(),
+      })
+      .strict()
+      .optional(),
     talk: TalkSchema.optional(),
     gateway: z
       .object({

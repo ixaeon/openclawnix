@@ -83,6 +83,7 @@ import {
 import { ExecApprovalManager } from "./exec-approval-manager.js";
 import { startGatewayModelPricingRefresh } from "./model-pricing-cache.js";
 import { NodeRegistry } from "./node-registry.js";
+import { initOurPagesDb } from "./our-pages-db.js";
 import type { startBrowserControlServerIfEnabled } from "./server-browser.js";
 import { createChannelManager } from "./server-channels.js";
 import {
@@ -547,6 +548,7 @@ export async function startGatewayServer(
   }
 
   initSubagentRegistry();
+  await initOurPagesDb();
   const defaultAgentId = resolveDefaultAgentId(cfgAtStart);
   const defaultWorkspaceDir = resolveAgentWorkspaceDir(cfgAtStart, defaultAgentId);
   const deferredConfiguredChannelPluginIds = minimalTestGateway

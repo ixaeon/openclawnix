@@ -296,6 +296,7 @@ export type AppViewState = {
     logsMaxBytes: number;
     logsAtBottom: boolean;
     updateAvailable: import("./types.js").UpdateAvailable | null;
+    canvasHostUrl: string | null;
     attentionItems: AttentionItem[];
     paletteOpen: boolean;
     paletteQuery: string;

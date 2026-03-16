@@ -164,6 +164,15 @@ const entries: SubCliEntry[] = [
     },
   },
   {
+    name: "our-pages",
+    description: "Manage Our Pages",
+    hasSubcommands: true,
+    register: async (program) => {
+      const mod = await import("../our-pages-cli.js");
+      mod.registerOurPagesCli(program);
+    },
+  },
+  {
     name: "dns",
     description: "DNS helpers for wide-area discovery (Tailscale + CoreDNS)",
     hasSubcommands: true,

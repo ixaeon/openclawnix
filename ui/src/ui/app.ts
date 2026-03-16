@@ -383,6 +383,7 @@ export class OpenClawApp extends LitElement {
   @state() cronBusy = false;
 
   @state() updateAvailable: import("./types.js").UpdateAvailable | null = null;
+  @state() canvasHostUrl: string | null = null;
 
   // Overview dashboard state
   @state() attentionItems: import("./types.js").AttentionItem[] = [];

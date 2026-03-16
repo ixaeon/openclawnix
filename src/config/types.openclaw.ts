@@ -11,6 +11,7 @@ import type {
   CanvasHostConfig,
   DiscoveryConfig,
   GatewayConfig,
+  OurPagesConfig,
   TalkConfig,
 } from "./types.gateway.js";
 import type { HooksConfig } from "./types.hooks.js";
@@ -118,6 +119,7 @@ export type OpenClawConfig = {
   hooks?: HooksConfig;
   discovery?: DiscoveryConfig;
   canvasHost?: CanvasHostConfig;
+  ourPages?: OurPagesConfig;
   talk?: TalkConfig;
   gateway?: GatewayConfig;
   memory?: MemoryConfig;

@@ -142,6 +142,7 @@ function createHost() {
     execApprovalQueue: [],
     execApprovalError: null,
     updateAvailable: null,
+    canvasHostUrl: null,
   } as unknown as Parameters<typeof connectGateway>[0];
 }
 

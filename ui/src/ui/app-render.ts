@@ -128,6 +128,7 @@ const lazyDebug = createLazy(() => import("./views/debug.ts"));
 const lazyInstances = createLazy(() => import("./views/instances.ts"));
 const lazyLogs = createLazy(() => import("./views/logs.ts"));
 const lazyNodes = createLazy(() => import("./views/nodes.ts"));
+const lazyOurPages = createLazy(() => import("./views/our-pages.ts"));
 const lazySessions = createLazy(() => import("./views/sessions.ts"));
 const lazySkills = createLazy(() => import("./views/skills.ts"));
 
@@ -908,6 +909,21 @@ export function renderApp(state: AppViewState) {
                     state.setTab("chat" as import("./navigation.ts").Tab);
                   },
                 }),
+              )
+            : nothing
+        }
+
+        ${
+          state.tab === "our-pages"
+            ? lazyRender(lazyOurPages, (m) =>
+                m.renderOurPages(
+                  {
+                    connected: state.connected,
+                    client: state.client,
+                    canvasHostUrl: state.canvasHostUrl,
+                  },
+                  () => requestHostUpdate?.(),
+                ),
               )
             : nothing
         }
