@@ -101,7 +101,10 @@ async function loadPages(client: GatewayBrowserClient | null) {
     if (viewState.selectedTag) {
       params.tag = viewState.selectedTag;
     }
-    const result = await client.request("our_pages.list", params);
+    const result = await client.request<{ pages: PageEntry[]; total: number }>(
+      "our_pages.list",
+      params,
+    );
     viewState.pages = result.pages;
     viewState.total = result.total;
   } catch (e) {

@@ -75,10 +75,13 @@ export function resolveCanvasHostUrl(params: CanvasHostUrlParams) {
   }
 
   // When the websocket is proxied over HTTPS (for example Tailscale Serve), the gateway's
-  // internal listener still runs on 18789. In that case, expose the public port instead of
-  // advertising the internal one back to clients.
+  // internal listener runs on a different port than the public-facing one. In that case,
+  // expose the public port (from the request Host header or scheme default) instead of
+  // advertising the internal listener port back to clients.
   let exposedPort = port;
-  if (!override && requestHost && port === 18789) {
+  if (!override && requestHost) {
+    // If the request came in via a proxy (the request host differs from loopback),
+    // use the port from the Host header, or the scheme default if no explicit port.
     if (parsedRequestHost.port && parsedRequestHost.port > 0) {
       exposedPort = parsedRequestHost.port;
     } else if (scheme === "https") {
