@@ -384,6 +384,7 @@ export class OpenClawApp extends LitElement {
 
   @state() updateAvailable: import("./types.js").UpdateAvailable | null = null;
   @state() canvasHostUrl: string | null = null;
+  @state() ourPagesBasePath: string | null = null;
 
   // Overview dashboard state
   @state() attentionItems: import("./types.js").AttentionItem[] = [];

@@ -62,6 +62,9 @@ import {
   authorizeCanvasRequest,
   enforcePluginRouteGatewayAuth,
   isCanvasPath,
+  isOurPagesPath,
+  OUR_PAGES_PREFIX,
+  OUR_PAGES_PREFIX_DEFAULT,
 } from "./server/http-auth.js";
 import {
   isProtectedPluginRoutePathFromContext,
@@ -720,6 +723,8 @@ export function createGatewayHttpServer(opts: {
   controlUiEnabled: boolean;
   controlUiBasePath: string;
   controlUiRoot?: ControlUiRootState;
+  /** Base path for Our Pages (default: "/ourpages"). Legacy /__openclaw__/our-pages/* redirects here. */
+  ourPagesBasePath?: string;
   openAiChatCompletionsEnabled: boolean;
   openAiChatCompletionsConfig?: import("../config/types.gateway.js").GatewayHttpChatCompletionsConfig;
   openResponsesEnabled: boolean;
@@ -752,6 +757,7 @@ export function createGatewayHttpServer(opts: {
     rateLimiter,
     getReadiness,
   } = opts;
+  const ourPagesBasePath = opts.ourPagesBasePath ?? OUR_PAGES_PREFIX_DEFAULT;
   const httpServer: HttpServer = opts.tlsOptions
     ? createHttpsServer(opts.tlsOptions, (req, res) => {
         void handleRequest(req, res);
@@ -853,6 +859,79 @@ export function createGatewayHttpServer(opts: {
             }),
         });
       }
+      // Our Pages — served at ourPagesBasePath (default /ourpages) with a redirect from the legacy path.
+      // This runs before canvas-auth so pages are reachable without a canvas capability token.
+      requestStages.push({
+        name: "our-pages",
+        run: async () => {
+          const legacyPrefix = `${OUR_PAGES_PREFIX}/`;
+          const newPrefix = `${ourPagesBasePath}/`;
+          const isLegacy = requestPath === OUR_PAGES_PREFIX || requestPath.startsWith(legacyPrefix);
+          const isNew    = requestPath === ourPagesBasePath || requestPath.startsWith(newPrefix);
+          if (!isLegacy && !isNew) {return false;}
+
+          // Redirect legacy /__openclaw__/our-pages/* → /ourpages/*
+          if (isLegacy) {
+            const slug = requestPath.startsWith(legacyPrefix)
+              ? requestPath.slice(legacyPrefix.length).split("/")[0]
+              : "";
+            const target = slug ? `${ourPagesBasePath}/${slug}` : ourPagesBasePath;
+            res.statusCode = 301;
+            res.setHeader("Location", target);
+            res.end();
+            return true;
+          }
+
+          // Extract slug from /ourpages/<slug>
+          const slug = requestPath.startsWith(newPrefix)
+            ? requestPath.slice(newPrefix.length).split("/")[0]
+            : "";
+
+          if (!slug || !/^[a-z0-9-]+$/.test(slug)) {
+            res.statusCode = 404;
+            res.setHeader("Content-Type", "text/html; charset=utf-8");
+            res.end(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Our Pages</title></head><body style="font-family:sans-serif;text-align:center;padding:50px;background:#0d1117;color:#c9d1d9"><h1>Our Pages</h1><p>No slug provided. Pages live at ${ourPagesBasePath}/&lt;slug&gt;</p></body></html>`);
+            return true;
+          }
+
+          const { getPage } = await import("./our-pages-db.js");
+          const page = await getPage({ slug });
+
+          if (!page || page.deleted_at) {
+            res.statusCode = 404;
+            res.setHeader("Content-Type", "text/plain; charset=utf-8");
+            res.end("Page not found");
+            return true;
+          }
+
+          res.setHeader("Content-Security-Policy", [
+            "default-src 'self' 'unsafe-inline'",
+            "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net",
+            "connect-src 'self'",
+            "frame-ancestors 'self'",
+          ].join("; "));
+          res.setHeader("X-Content-Type-Options", "nosniff");
+          res.setHeader("Referrer-Policy", "no-referrer");
+
+          switch (page.type) {
+            case "inline":
+              res.setHeader("Content-Type", "text/html; charset=utf-8");
+              res.end(page.html);
+              return true;
+            case "link":
+              res.statusCode = 302;
+              res.setHeader("Location", page.url as string);
+              res.end();
+              return true;
+            default:
+              res.statusCode = 501;
+              res.setHeader("Content-Type", "text/plain; charset=utf-8");
+              res.end("Page type not supported");
+              return true;
+          }
+        },
+      });
+
       if (canvasHost) {
         requestStages.push({
           name: "canvas-auth",
@@ -869,6 +948,7 @@ export function createGatewayHttpServer(opts: {
               canvasCapability: scopedCanvas.capability,
               malformedScopedPath: scopedCanvas.malformedScopedPath,
               rateLimiter,
+              ourPagesBasePath,
             });
             if (!ok.ok) {
               sendGatewayAuthFailure(res, ok);

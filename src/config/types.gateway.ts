@@ -51,6 +51,12 @@ export type CanvasHostConfig = {
 export type OurPagesConfig = {
   /** Feature mode: enabled (default), read-only, or disabled. */
   mode?: "enabled" | "read-only" | "disabled";
+  /**
+   * URL base path for published pages. Defaults to "/ourpages".
+   * Example: "/pages", "/pub", "/site"
+   * The legacy /__openclaw__/our-pages/* path always redirects to this path.
+   */
+  basePath?: string;
 };
 
 export type TalkProviderConfig = {

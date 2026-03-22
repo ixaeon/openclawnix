@@ -83,6 +83,7 @@ type GatewayHost = {
   execApprovalError: string | null;
   updateAvailable: UpdateAvailable | null;
   canvasHostUrl: string | null;
+  ourPagesBasePath: string | null;
 };
 
 type SessionDefaultsSnapshot = {
@@ -434,4 +435,5 @@ export function applySnapshot(host: GatewayHost, hello: GatewayHelloOk) {
   }
   host.updateAvailable = snapshot?.updateAvailable ?? null;
   host.canvasHostUrl = hello.canvasHostUrl ?? null;
+  host.ourPagesBasePath = (hello as Record<string, unknown>).ourPagesBasePath as string | null ?? null;
 }

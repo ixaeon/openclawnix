@@ -12,7 +12,6 @@ import {
 import chokidar from "chokidar";
 import { type WebSocket, WebSocketServer } from "ws";
 import { resolveStateDir } from "../config/paths.js";
-import { getPage } from "../gateway/our-pages-db.js";
 import { isTruthyEnvValue } from "../infra/env.js";
 import { detectMime } from "../media/mime.js";
 import type { RuntimeEnv } from "../runtime.js";
@@ -353,73 +352,10 @@ export async function createCanvasHostHandler(
         return true;
       }
 
-      // Our Pages: serve stored pages at /__openclaw__/our-pages/<slug>
-      // This check must come BEFORE the basePath filter so it is reachable
-      // regardless of where the canvas host is mounted.
-      const ourPagesPrefix = "/__openclaw__/our-pages/";
-      if (url.pathname.startsWith(ourPagesPrefix)) {
-        const slug = url.pathname.slice(ourPagesPrefix.length).split("/")[0];
-        const slugRe = /^[a-z0-9-]+$/;
-
-        if (!slug || !slugRe.test(slug)) {
-          res.statusCode = 400;
-          res.setHeader("Content-Type", "text/plain; charset=utf-8");
-          res.end("Invalid page identifier");
-          return true;
-        }
-
-        const page = await getPage({ slug });
-
-        if (!page || page.deleted_at) {
-          res.statusCode = 404;
-          res.setHeader("Content-Type", "text/plain; charset=utf-8");
-          res.end("Page not found");
-          return true;
-        }
-
-        // Security headers for sandboxed page content
-        res.setHeader(
-          "Content-Security-Policy",
-          [
-            "default-src 'self' 'unsafe-inline'",
-            "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net",
-            "connect-src 'self'",
-            "frame-ancestors 'self'",
-          ].join("; "),
-        );
-        res.setHeader("X-Content-Type-Options", "nosniff");
-        res.setHeader("Referrer-Policy", "no-referrer");
-
-        switch (page.type) {
-          case "inline":
-            res.setHeader("Content-Type", "text/html; charset=utf-8");
-            res.end(page.html);
-            return true;
-
-          case "link":
-            res.statusCode = 302;
-            res.setHeader("Location", page.url as string);
-            res.end();
-            return true;
-
-          case "file":
-            res.statusCode = 501;
-            res.setHeader("Content-Type", "text/plain; charset=utf-8");
-            res.end("File-backed pages not yet supported");
-            return true;
-
-          case "safe":
-          default:
-            res.setHeader("Content-Type", "text/html; charset=utf-8");
-            res.end(`<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Unavailable</title></head>
-<body style="font-family:sans-serif;text-align:center;padding:50px;background:#0d1117;color:#c9d1d9">
-<h1>Page Unavailable</h1>
-<p>This page is unavailable or has been restricted for security reasons.</p>
-</body></html>`);
-            return true;
-        }
-      }
+      // Our Pages are now served at the gateway HTTP level (server-http.ts) at the
+      // configurable basePath (default /ourpages). The canvas host no longer needs to
+      // handle them — the gateway stage runs first and handles both the new path and
+      // the legacy /__openclaw__/our-pages/* redirect.
 
       // For all other canvas paths, enforce basePath and method restrictions.
       let urlPath = url.pathname;

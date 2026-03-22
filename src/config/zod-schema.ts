@@ -654,6 +654,10 @@ export const OpenClawSchema = z
         mode: z
           .union([z.literal("enabled"), z.literal("read-only"), z.literal("disabled")])
           .optional(),
+        basePath: z
+          .string()
+          .regex(/^\/[a-zA-Z0-9_-]*$/, "basePath must start with / and contain only alphanumeric, _, - characters")
+          .optional(),
       })
       .strict()
       .optional(),

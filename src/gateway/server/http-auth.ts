@@ -1,7 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { A2UI_PATH, CANVAS_HOST_PATH, CANVAS_WS_PATH } from "../../canvas-host/a2ui.js";
 
-export const OUR_PAGES_PREFIX = "/__openclaw__/our-pages";
+export const OUR_PAGES_PREFIX_DEFAULT = "/ourpages";
+export const OUR_PAGES_PREFIX = "/__openclaw__/our-pages"; // legacy; kept for redirect compatibility
 import { safeEqualSecret } from "../../security/secret-equal.js";
 import type { AuthRateLimiter } from "../auth-rate-limit.js";
 import {
@@ -23,6 +24,18 @@ export function isCanvasPath(pathname: string): boolean {
     pathname === CANVAS_HOST_PATH ||
     pathname.startsWith(`${CANVAS_HOST_PATH}/`) ||
     pathname === CANVAS_WS_PATH ||
+    // Legacy our-pages prefix kept for redirect compatibility
+    pathname === OUR_PAGES_PREFIX ||
+    pathname.startsWith(`${OUR_PAGES_PREFIX}/`)
+  );
+}
+
+export function isOurPagesPath(pathname: string, basePath: string = OUR_PAGES_PREFIX_DEFAULT): boolean {
+  const normalised = basePath.endsWith("/") ? basePath.slice(0, -1) : basePath;
+  return (
+    pathname === normalised ||
+    pathname.startsWith(`${normalised}/`) ||
+    // Also match legacy /__openclaw__/our-pages/* for redirect
     pathname === OUR_PAGES_PREFIX ||
     pathname.startsWith(`${OUR_PAGES_PREFIX}/`)
   );
@@ -59,10 +72,6 @@ function hasAuthorizedNodeWsClientForCanvasCapability(
   return false;
 }
 
-export function isOurPagesPath(pathname: string): boolean {
-  return pathname === OUR_PAGES_PREFIX || pathname.startsWith(`${OUR_PAGES_PREFIX}/`);
-}
-
 export async function authorizeCanvasRequest(params: {
   req: IncomingMessage;
   auth: ResolvedGatewayAuth;
@@ -72,6 +81,7 @@ export async function authorizeCanvasRequest(params: {
   canvasCapability?: string;
   malformedScopedPath?: boolean;
   rateLimiter?: AuthRateLimiter;
+  ourPagesBasePath?: string;
 }): Promise<GatewayAuthResult> {
   const {
     req,
@@ -82,6 +92,7 @@ export async function authorizeCanvasRequest(params: {
     canvasCapability,
     malformedScopedPath,
     rateLimiter,
+    ourPagesBasePath,
   } = params;
   if (malformedScopedPath) {
     return { ok: false, reason: "unauthorized" };
@@ -94,7 +105,7 @@ export async function authorizeCanvasRequest(params: {
   // no additional canvas capability token is required to view a published page.
   const url = req.url ?? "";
   const pathname = url.split("?")[0] ?? "";
-  if (isOurPagesPath(pathname)) {
+  if (isOurPagesPath(pathname, ourPagesBasePath)) {
     return { ok: true };
   }
 

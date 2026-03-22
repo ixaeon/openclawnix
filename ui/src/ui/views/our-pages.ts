@@ -5,6 +5,8 @@ export type OurPagesState = {
   connected: boolean;
   client: GatewayBrowserClient | null;
   canvasHostUrl: string | null;
+  /** Base path for published pages, e.g. "/ourpages". Defaults to "/ourpages". */
+  ourPagesBasePath?: string | null;
 };
 
 type PageEntry = {
@@ -41,11 +43,13 @@ const viewState: OurPagesViewState = {
   viewingPage: null,
 };
 
-function pageUrl(slug: string, canvasHostUrl: string | null): string {
-  if (canvasHostUrl) {
-    return `${canvasHostUrl}/__openclaw__/our-pages/${slug}`;
-  }
-  return `${window.location.origin}/__openclaw__/our-pages/${slug}`;
+const DEFAULT_OUR_PAGES_BASE = "/ourpages";
+
+function pageUrl(slug: string, canvasHostUrl: string | null, basePath?: string | null): string {
+  const base = basePath ?? DEFAULT_OUR_PAGES_BASE;
+  // Use the canvas host origin if available (handles proxy port), otherwise current origin
+  const origin = canvasHostUrl ? new URL(canvasHostUrl).origin : window.location.origin;
+  return `${origin}${base}/${slug}`;
 }
 
 function typeBadge(type: string) {
@@ -136,8 +140,9 @@ function renderCard(
   client: GatewayBrowserClient | null,
   onView: (page: PageEntry) => void,
   requestUpdate: () => void,
+  ourPagesBasePath?: string | null,
 ) {
-  const url = pageUrl(page.slug, canvasHostUrl);
+  const url = pageUrl(page.slug, canvasHostUrl, ourPagesBasePath);
   return html`
     <div
       class="our-pages-card ${page.pinned ? "pinned" : ""}"
@@ -206,8 +211,8 @@ function renderCard(
   `;
 }
 
-function renderViewer(page: PageEntry, canvasHostUrl: string | null, onClose: () => void) {
-  const url = pageUrl(page.slug, canvasHostUrl);
+function renderViewer(page: PageEntry, canvasHostUrl: string | null, onClose: () => void, ourPagesBasePath?: string | null) {
+  const url = pageUrl(page.slug, canvasHostUrl, ourPagesBasePath);
   return html`
     <div class="our-pages-viewer">
       <div class="viewer-header">
@@ -245,7 +250,7 @@ export function renderOurPages(state: OurPagesState, requestUpdate: () => void) 
     return renderViewer(viewState.viewingPage, state.canvasHostUrl, () => {
       viewState.viewingPage = null;
       requestUpdate();
-    });
+    }, state.ourPagesBasePath);
   }
 
   // Load pages on first render or when connected
@@ -379,6 +384,7 @@ export function renderOurPages(state: OurPagesState, requestUpdate: () => void) 
                     requestUpdate();
                   },
                   requestUpdate,
+                  state.ourPagesBasePath,
                 ),
               )}
             </div>
@@ -406,6 +412,7 @@ export function renderOurPages(state: OurPagesState, requestUpdate: () => void) 
                     requestUpdate();
                   },
                   requestUpdate,
+                  state.ourPagesBasePath,
                 ),
               )}
             </div>

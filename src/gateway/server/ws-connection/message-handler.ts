@@ -975,6 +975,7 @@ export function attachGatewayWsMessageHandler(params: {
           features: { methods: gatewayMethods, events },
           snapshot,
           canvasHostUrl: scopedCanvasHostUrl,
+          ourPagesBasePath: loadConfig()?.ourPages?.basePath ?? "/ourpages",
           auth: deviceToken
             ? {
                 deviceToken: deviceToken.token,

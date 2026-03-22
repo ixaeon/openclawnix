@@ -921,6 +921,7 @@ export function renderApp(state: AppViewState) {
                     connected: state.connected,
                     client: state.client,
                     canvasHostUrl: state.canvasHostUrl,
+                    ourPagesBasePath: state.ourPagesBasePath,
                   },
                   () => requestHostUpdate?.(),
                 ),

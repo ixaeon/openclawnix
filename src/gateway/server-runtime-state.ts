@@ -10,6 +10,7 @@ import {
   releasePinnedPluginHttpRouteRegistry,
   resolveActivePluginHttpRouteRegistry,
 } from "../plugins/runtime.js";
+import { loadConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { AuthRateLimiter } from "./auth-rate-limit.js";
 import type { ResolvedGatewayAuth } from "./auth.js";
@@ -166,6 +167,7 @@ export async function createGatewayRuntimeState(params: {
         controlUiEnabled: params.controlUiEnabled,
         controlUiBasePath: params.controlUiBasePath,
         controlUiRoot: params.controlUiRoot,
+        ourPagesBasePath: loadConfig()?.ourPages?.basePath ?? "/ourpages",
         openAiChatCompletionsEnabled: params.openAiChatCompletionsEnabled,
         openAiChatCompletionsConfig: params.openAiChatCompletionsConfig,
         openResponsesEnabled: params.openResponsesEnabled,
