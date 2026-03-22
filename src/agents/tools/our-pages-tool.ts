@@ -53,9 +53,11 @@ export function createOurPagesTools(opts?: { config?: OpenClawConfig }): AnyAgen
         description: Type.Optional(Type.String()),
         default_icon: Type.Optional(Type.String()),
         type: Type.Optional(
-          Type.Unsafe<"inline" | "link" | "file">({
+          Type.Unsafe<"inline" | "link" | "file" | "portal">({
             type: "string",
-            enum: ["inline", "link", "file"],
+            enum: ["inline", "link", "file", "portal"],
+            description:
+              'Page type: "inline" (HTML content), "link" (redirect to URL), "file" (file-backed), "portal" (full-page iframe of external URL with header bar)',
           }),
         ),
         html: Type.Optional(Type.String()),

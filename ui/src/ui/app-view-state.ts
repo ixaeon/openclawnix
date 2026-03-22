@@ -297,6 +297,7 @@ export type AppViewState = {
     logsAtBottom: boolean;
     updateAvailable: import("./types.js").UpdateAvailable | null;
     canvasHostUrl: string | null;
+    ourPagesBasePath: string | null;
     attentionItems: AttentionItem[];
     paletteOpen: boolean;
     paletteQuery: string;

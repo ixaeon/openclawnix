@@ -30,7 +30,10 @@ export function isCanvasPath(pathname: string): boolean {
   );
 }
 
-export function isOurPagesPath(pathname: string, basePath: string = OUR_PAGES_PREFIX_DEFAULT): boolean {
+export function isOurPagesPath(
+  pathname: string,
+  basePath: string = OUR_PAGES_PREFIX_DEFAULT,
+): boolean {
   const normalised = basePath.endsWith("/") ? basePath.slice(0, -1) : basePath;
   return (
     pathname === normalised ||

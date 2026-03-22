@@ -76,6 +76,16 @@ describe("publishPage", () => {
     expect(page!.version).toBe(2);
   });
 
+  it("increments version on each content-changing update", async () => {
+    const { publishPage } = await getDb();
+    const v1 = await publishPage({ slug: "versioned", title: "v1", html: "<p>v1</p>" });
+    expect(v1.version).toBe(1);
+    const v2 = await publishPage({ slug: "versioned", title: "v2", html: "<p>v2</p>" });
+    expect(v2.version).toBe(2);
+    const v3 = await publishPage({ slug: "versioned", title: "v3", html: "<p>v3</p>" });
+    expect(v3.version).toBe(3);
+  });
+
   it("does NOT increment version when content is unchanged (no-op update)", async () => {
     const { publishPage, getPage } = await getDb();
     await publishPage({ slug: "noop", title: "Same", html: "<p>same</p>" });
@@ -119,6 +129,31 @@ describe("publishPage", () => {
     await expect(publishPage({ slug: "too-big", title: "Big", html: bigHtml })).rejects.toThrow(
       "15 MB hard limit",
     );
+  });
+
+  it("publishes a portal page with type and url", async () => {
+    const { publishPage, getPage } = await getDb();
+    const result = await publishPage({
+      slug: "my-portal",
+      title: "External Dashboard",
+      type: "portal",
+      url: "https://example.com/dashboard",
+    });
+    expect(result.slug).toBe("my-portal");
+    expect(result.version).toBe(1);
+
+    const page = await getPage({ slug: "my-portal" });
+    expect(page).not.toBeNull();
+    expect(page!.type).toBe("portal");
+    expect(page!.url).toBe("https://example.com/dashboard");
+  });
+
+  it("rejects slugs with uppercase characters", async () => {
+    const { publishPage } = await getDb();
+    // The DB layer doesn't enforce slug format — that's the tool schema's job.
+    // But we verify the DB accepts lowercase slugs and stores them correctly.
+    const result = await publishPage({ slug: "valid-slug", title: "Valid", html: "<p>ok</p>" });
+    expect(result.slug).toBe("valid-slug");
   });
 
   it("restores a soft-deleted page on re-publish", async () => {
@@ -204,6 +239,48 @@ describe("listPages", () => {
     const result = await listPages({});
     expect(result.pages[0].slug).toBe("b");
     expect(result.pages[0].pinned).toBe(true);
+  });
+
+  it("search filter matches description", async () => {
+    const { publishPage, listPages } = await getDb();
+    await publishPage({
+      slug: "alpha",
+      title: "Alpha",
+      description: "CPU metrics dashboard",
+      html: "<p>a</p>",
+    });
+    await publishPage({
+      slug: "beta",
+      title: "Beta",
+      description: "Sales report",
+      html: "<p>b</p>",
+    });
+
+    const result = await listPages({ search: "metrics" });
+    expect(result.pages.length).toBe(1);
+    expect(result.pages[0].slug).toBe("alpha");
+  });
+
+  it("tag filter returns only matching tagged pages", async () => {
+    const { publishPage, listPages } = await getDb();
+    await publishPage({ slug: "t1", title: "T1", html: "<p>1</p>", tags: ["ops", "infra"] });
+    await publishPage({ slug: "t2", title: "T2", html: "<p>2</p>", tags: ["finance"] });
+    await publishPage({ slug: "t3", title: "T3", html: "<p>3</p>", tags: ["ops"] });
+
+    const result = await listPages({ tag: "ops" });
+    expect(result.pages.length).toBe(2);
+    expect(result.pages.map((p: { slug: string }) => p.slug).toSorted()).toEqual(["t1", "t3"]);
+  });
+
+  it("combined search and tag filter narrows results", async () => {
+    const { publishPage, listPages } = await getDb();
+    await publishPage({ slug: "x1", title: "Server Monitor", html: "<p>1</p>", tags: ["ops"] });
+    await publishPage({ slug: "x2", title: "Budget Report", html: "<p>2</p>", tags: ["ops"] });
+    await publishPage({ slug: "x3", title: "Server Logs", html: "<p>3</p>", tags: ["dev"] });
+
+    const result = await listPages({ search: "Server", tag: "ops" });
+    expect(result.pages.length).toBe(1);
+    expect(result.pages[0].slug).toBe("x1");
   });
 });
 

@@ -62,7 +62,6 @@ import {
   authorizeCanvasRequest,
   enforcePluginRouteGatewayAuth,
   isCanvasPath,
-  isOurPagesPath,
   OUR_PAGES_PREFIX,
   OUR_PAGES_PREFIX_DEFAULT,
 } from "./server/http-auth.js";
@@ -867,8 +866,10 @@ export function createGatewayHttpServer(opts: {
           const legacyPrefix = `${OUR_PAGES_PREFIX}/`;
           const newPrefix = `${ourPagesBasePath}/`;
           const isLegacy = requestPath === OUR_PAGES_PREFIX || requestPath.startsWith(legacyPrefix);
-          const isNew    = requestPath === ourPagesBasePath || requestPath.startsWith(newPrefix);
-          if (!isLegacy && !isNew) {return false;}
+          const isNew = requestPath === ourPagesBasePath || requestPath.startsWith(newPrefix);
+          if (!isLegacy && !isNew) {
+            return false;
+          }
 
           // Redirect legacy /__openclaw__/our-pages/* → /ourpages/*
           if (isLegacy) {
@@ -890,7 +891,9 @@ export function createGatewayHttpServer(opts: {
           if (!slug || !/^[a-z0-9-]+$/.test(slug)) {
             res.statusCode = 404;
             res.setHeader("Content-Type", "text/html; charset=utf-8");
-            res.end(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Our Pages</title></head><body style="font-family:sans-serif;text-align:center;padding:50px;background:#0d1117;color:#c9d1d9"><h1>Our Pages</h1><p>No slug provided. Pages live at ${ourPagesBasePath}/&lt;slug&gt;</p></body></html>`);
+            res.end(
+              `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Our Pages</title></head><body style="font-family:sans-serif;text-align:center;padding:50px;background:#0d1117;color:#c9d1d9"><h1>Our Pages</h1><p>No slug provided. Pages live at ${ourPagesBasePath}/&lt;slug&gt;</p></body></html>`,
+            );
             return true;
           }
 
@@ -904,12 +907,15 @@ export function createGatewayHttpServer(opts: {
             return true;
           }
 
-          res.setHeader("Content-Security-Policy", [
-            "default-src 'self' 'unsafe-inline'",
-            "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net",
-            "connect-src 'self'",
-            "frame-ancestors 'self'",
-          ].join("; "));
+          res.setHeader(
+            "Content-Security-Policy",
+            [
+              "default-src 'self' 'unsafe-inline'",
+              "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net",
+              "connect-src 'self'",
+              "frame-ancestors 'self'",
+            ].join("; "),
+          );
           res.setHeader("X-Content-Type-Options", "nosniff");
           res.setHeader("Referrer-Policy", "no-referrer");
 
@@ -922,6 +928,20 @@ export function createGatewayHttpServer(opts: {
               res.statusCode = 302;
               res.setHeader("Location", page.url as string);
               res.end();
+              return true;
+            case "portal":
+              res.setHeader("Content-Type", "text/html; charset=utf-8");
+              res.setHeader(
+                "Content-Security-Policy",
+                [
+                  "default-src 'self' 'unsafe-inline'",
+                  "frame-src *",
+                  "frame-ancestors 'self'",
+                ].join("; "),
+              );
+              res.end(
+                `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${page.title}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#0d1117;color:#c9d1d9;font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif}.portal-bar{display:flex;align-items:center;gap:12px;padding:8px 16px;background:#161b22;border-bottom:1px solid rgba(255,255,255,0.1);height:44px}.portal-title{font-weight:600;font-size:14px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.portal-icon{font-size:18px}.portal-open{color:#58a6ff;text-decoration:none;font-size:13px;padding:4px 10px;border:1px solid rgba(255,255,255,0.12);border-radius:6px}.portal-open:hover{background:rgba(255,255,255,0.06)}iframe{width:100%;height:calc(100vh - 44px);border:none}</style></head><body><div class="portal-bar"><span class="portal-icon">${page.default_icon}</span><span class="portal-title">${page.title}</span><a class="portal-open" href="${page.url}" target="_blank" rel="noopener noreferrer">Open in new tab ↗</a></div><iframe src="${page.url}" title="${page.title}" referrerpolicy="no-referrer"></iframe></body></html>`,
+              );
               return true;
             default:
               res.statusCode = 501;

@@ -3,6 +3,7 @@ import { WebSocketServer } from "ws";
 import { CANVAS_HOST_PATH } from "../canvas-host/a2ui.js";
 import { type CanvasHostHandler, createCanvasHostHandler } from "../canvas-host/server.js";
 import type { CliDeps } from "../cli/deps.js";
+import { loadConfig } from "../config/config.js";
 import type { createSubsystemLogger } from "../logging/subsystem.js";
 import type { PluginRegistry } from "../plugins/registry.js";
 import {
@@ -10,7 +11,6 @@ import {
   releasePinnedPluginHttpRouteRegistry,
   resolveActivePluginHttpRouteRegistry,
 } from "../plugins/runtime.js";
-import { loadConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { AuthRateLimiter } from "./auth-rate-limit.js";
 import type { ResolvedGatewayAuth } from "./auth.js";

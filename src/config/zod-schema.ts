@@ -656,7 +656,10 @@ export const OpenClawSchema = z
           .optional(),
         basePath: z
           .string()
-          .regex(/^\/[a-zA-Z0-9_-]*$/, "basePath must start with / and contain only alphanumeric, _, - characters")
+          .regex(
+            /^\/[a-zA-Z0-9_-]*$/,
+            "basePath must start with / and contain only alphanumeric, _, - characters",
+          )
           .optional(),
       })
       .strict()

@@ -39,7 +39,7 @@ function getDb(): Promise<DbInstance> {
   return _dbInit;
 }
 
-const VALID_TYPES = new Set(["inline", "link", "file"]);
+const VALID_TYPES = new Set(["inline", "link", "file", "portal"]);
 
 export async function initOurPagesDb() {
   const db = await getDb();
@@ -51,7 +51,7 @@ export async function initOurPagesDb() {
       description     TEXT,
       default_icon    TEXT DEFAULT '📄',
       type            TEXT NOT NULL DEFAULT 'inline'
-                      CHECK(type IN ('inline','link','file','safe')),
+                      CHECK(type IN ('inline','link','file','portal','safe')),
       html            TEXT,
       url             TEXT,
       path            TEXT,

@@ -66,6 +66,10 @@ function typeBadge(type: string) {
       return html`
         <span class="type-badge file" title="File-backed">&#x25C6; file</span>
       `;
+    case "portal":
+      return html`
+        <span class="type-badge portal" title="Portal (external iframe)">&#x29C9; portal</span>
+      `;
     case "safe":
     default:
       return html`
@@ -211,7 +215,12 @@ function renderCard(
   `;
 }
 
-function renderViewer(page: PageEntry, canvasHostUrl: string | null, onClose: () => void, ourPagesBasePath?: string | null) {
+function renderViewer(
+  page: PageEntry,
+  canvasHostUrl: string | null,
+  onClose: () => void,
+  ourPagesBasePath?: string | null,
+) {
   const url = pageUrl(page.slug, canvasHostUrl, ourPagesBasePath);
   return html`
     <div class="our-pages-viewer">
@@ -247,10 +256,15 @@ function renderViewer(page: PageEntry, canvasHostUrl: string | null, onClose: ()
 export function renderOurPages(state: OurPagesState, requestUpdate: () => void) {
   // If viewing a specific page, render the viewer
   if (viewState.viewingPage) {
-    return renderViewer(viewState.viewingPage, state.canvasHostUrl, () => {
-      viewState.viewingPage = null;
-      requestUpdate();
-    }, state.ourPagesBasePath);
+    return renderViewer(
+      viewState.viewingPage,
+      state.canvasHostUrl,
+      () => {
+        viewState.viewingPage = null;
+        requestUpdate();
+      },
+      state.ourPagesBasePath,
+    );
   }
 
   // Load pages on first render or when connected
@@ -291,13 +305,13 @@ export function renderOurPages(state: OurPagesState, requestUpdate: () => void) 
       .tag-chip { padding: 1px 6px; border-radius: 8px; background: rgba(255,255,255,0.08); font-size: 10px; }
       .our-pages-empty { text-align: center; padding: 48px 24px; opacity: 0.6; }
       .our-pages-empty p { margin: 8px 0; font-size: 13px; }
-      .our-pages-viewer { display: flex; flex-direction: column; height: 100%; }
-      .viewer-header { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.10)); }
+      .our-pages-viewer { display: flex; flex-direction: column; height: calc(100vh - 48px); min-height: 80vh; }
+      .viewer-header { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.10)); flex-shrink: 0; }
       .viewer-back { background: none; border: none; color: var(--accent-color, #58a6ff); cursor: pointer; font-size: 13px; padding: 4px 8px; }
       .viewer-title { font-weight: 600; font-size: 14px; }
       .viewer-version { font-size: 11px; opacity: 0.6; }
-      .viewer-iframe-wrap { flex: 1; min-height: 0; }
-      .viewer-footer { padding: 8px 12px; border-top: 1px solid var(--border-color, rgba(255,255,255,0.10)); font-size: 12px; }
+      .viewer-iframe-wrap { flex: 1; min-height: 0; overflow: hidden; }
+      .viewer-footer { padding: 8px 12px; border-top: 1px solid var(--border-color, rgba(255,255,255,0.10)); font-size: 12px; flex-shrink: 0; }
       .viewer-url-bar { display: flex; align-items: center; gap: 8px; }
       .viewer-url-bar code { flex: 1; font-size: 11px; opacity: 0.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .viewer-url-bar a { color: var(--accent-color, #58a6ff); text-decoration: none; font-size: 12px; }
