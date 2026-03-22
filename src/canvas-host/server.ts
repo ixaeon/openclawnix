@@ -346,14 +346,6 @@ export async function createCanvasHostHandler(
         return true;
       }
 
-      let urlPath = url.pathname;
-      if (basePath !== "/") {
-        if (urlPath !== basePath && !urlPath.startsWith(`${basePath}/`)) {
-          return false;
-        }
-        urlPath = urlPath === basePath ? "/" : urlPath.slice(basePath.length) || "/";
-      }
-
       if (req.method !== "GET" && req.method !== "HEAD") {
         res.statusCode = 405;
         res.setHeader("Content-Type", "text/plain; charset=utf-8");
@@ -362,6 +354,8 @@ export async function createCanvasHostHandler(
       }
 
       // Our Pages: serve stored pages at /__openclaw__/our-pages/<slug>
+      // This check must come BEFORE the basePath filter so it is reachable
+      // regardless of where the canvas host is mounted.
       const ourPagesPrefix = "/__openclaw__/our-pages/";
       if (url.pathname.startsWith(ourPagesPrefix)) {
         const slug = url.pathname.slice(ourPagesPrefix.length).split("/")[0];
@@ -425,6 +419,22 @@ export async function createCanvasHostHandler(
 </body></html>`);
             return true;
         }
+      }
+
+      // For all other canvas paths, enforce basePath and method restrictions.
+      let urlPath = url.pathname;
+      if (basePath !== "/") {
+        if (urlPath !== basePath && !urlPath.startsWith(`${basePath}/`)) {
+          return false;
+        }
+        urlPath = urlPath === basePath ? "/" : urlPath.slice(basePath.length) || "/";
+      }
+
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        res.statusCode = 405;
+        res.setHeader("Content-Type", "text/plain; charset=utf-8");
+        res.end("Method Not Allowed");
+        return true;
       }
 
       const opened = await resolveFileWithinRoot(rootReal, urlPath);
