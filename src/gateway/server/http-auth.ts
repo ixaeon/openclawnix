@@ -59,6 +59,10 @@ function hasAuthorizedNodeWsClientForCanvasCapability(
   return false;
 }
 
+export function isOurPagesPath(pathname: string): boolean {
+  return pathname === OUR_PAGES_PREFIX || pathname.startsWith(`${OUR_PAGES_PREFIX}/`);
+}
+
 export async function authorizeCanvasRequest(params: {
   req: IncomingMessage;
   auth: ResolvedGatewayAuth;
@@ -83,6 +87,14 @@ export async function authorizeCanvasRequest(params: {
     return { ok: false, reason: "unauthorized" };
   }
   if (isLocalDirectRequest(req, trustedProxies, allowRealIpFallback)) {
+    return { ok: true };
+  }
+  // Our Pages are published content — accessible to any authenticated gateway user.
+  // The gateway's own auth layer (Tailscale, token, etc.) is the access boundary;
+  // no additional canvas capability token is required to view a published page.
+  const url = req.url ?? "";
+  const pathname = url.split("?")[0] ?? "";
+  if (isOurPagesPath(pathname)) {
     return { ok: true };
   }
 
