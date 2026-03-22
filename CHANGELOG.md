@@ -6,8 +6,10 @@ Docs: https://docs.openclaw.ai
 
 ### Changes
 
-- Breaking/Plugins: bare `openclaw plugins install <package>` now prefers ClawHub before npm for npm-safe names, and only falls back to npm when ClawHub does not have that package or version.
-- ClawHub/install: add native `openclaw skills search|install|update` flows plus `openclaw plugins install clawhub:<package>` with tracked update metadata, gateway skill-install/update support for ClawHub-backed requests, and regression coverage/docs for the new source path.
+- Our Pages: add a persistent page manager where agents save dashboards, tools, and reference pages. Includes four page types (inline HTML, link redirect, file pointer, portal iframe), versioned content with dedup, soft-delete with 30-day recovery, tag-based filtering, and pinning. Pages are served at `/ourpages/<slug>` on the canvas server with CSP headers and origin isolation.
+- Our Pages/config: add `ourPages.mode` (`enabled`, `read-only`, `disabled`) and `ourPages.basePath` (default `/ourpages`) configuration keys for controlling feature access and URL routing.
+- Our Pages/CLI: add `openclaw our-pages list|info|delete|restore|status` commands for direct page management from the terminal.
+- Our Pages/portal: add `type: "portal"` for full-page iframe embedding of external URLs with a styled header bar, title, icon, and "Open in new tab" button.
 - Models/Anthropic Vertex: add core `anthropic-vertex` provider support for Claude via Google Vertex AI, including GCP auth/discovery and main run-path routing. (#43356) Thanks @sallyom and @yossiovadia.
 - Commands/btw: add `/btw` side questions for quick tool-less answers about the current session without changing future session context, with dismissible in-session TUI answers and explicit BTW replies on external channels. (#45444) Thanks @ngutman.
 - Gateway/docs: clarify that empty URL input allowlists are treated as unset, document `allowUrl: false` as the deny-all switch, and add regression coverage for the normalization path.

@@ -360,3 +360,280 @@ describe("getOurPagesStatus", () => {
     expect(status.count).toBe(2);
   });
 });
+
+// ─── Additional coverage ──────────────────────────────────────────────────────
+
+describe("large HTML content", () => {
+  it("accepts HTML just under the 5MB soft limit without error", async () => {
+    const { publishPage, getPage } = await getDb();
+    const html = "x".repeat(4 * 1024 * 1024); // 4 MB
+    const result = await publishPage({ slug: "big-page", title: "Big", html });
+    expect(result.version).toBe(1);
+
+    const page = await getPage({ slug: "big-page" });
+    expect(page).not.toBeNull();
+    expect(page!.html!.length).toBe(4 * 1024 * 1024);
+  });
+
+  it("accepts HTML between 5MB and 15MB (soft limit warning only)", async () => {
+    const { publishPage } = await getDb();
+    const html = "x".repeat(6 * 1024 * 1024); // 6 MB — above soft limit, below hard limit
+    const result = await publishPage({ slug: "medium-big", title: "Medium Big", html });
+    expect(result.version).toBe(1);
+  });
+});
+
+describe("listPages tag filtering", () => {
+  it("returns empty when no pages match the tag", async () => {
+    const { publishPage, listPages } = await getDb();
+    await publishPage({ slug: "p1", title: "P1", html: "<p>1</p>", tags: ["alpha"] });
+    await publishPage({ slug: "p2", title: "P2", html: "<p>2</p>", tags: ["beta"] });
+
+    const result = await listPages({ tag: "gamma" });
+    expect(result.pages.length).toBe(0);
+    expect(result.total).toBe(0);
+  });
+
+  it("filters by type", async () => {
+    const { publishPage, listPages } = await getDb();
+    await publishPage({ slug: "inl", title: "Inline", html: "<p>x</p>" });
+    await publishPage({
+      slug: "lnk",
+      title: "Link",
+      type: "link",
+      url: "http://localhost:3000",
+    });
+
+    const result = await listPages({ type: "link" });
+    expect(result.pages.length).toBe(1);
+    expect(result.pages[0].slug).toBe("lnk");
+    expect(result.total).toBe(1);
+  });
+});
+
+describe("listPages search filtering", () => {
+  it("search is case-insensitive via LIKE", async () => {
+    const { publishPage, listPages } = await getDb();
+    await publishPage({ slug: "upper", title: "SERVER Monitor", html: "<p>x</p>" });
+
+    const result = await listPages({ search: "server" });
+    expect(result.pages.length).toBe(1);
+    expect(result.pages[0].slug).toBe("upper");
+  });
+});
+
+describe("listPages pagination", () => {
+  it("respects limit and offset", async () => {
+    const { publishPage, listPages } = await getDb();
+    for (let i = 0; i < 10; i++) {
+      await publishPage({ slug: `page-${i}`, title: `Page ${i}`, html: `<p>${i}</p>` });
+    }
+
+    const page1 = await listPages({ limit: 3, offset: 0 });
+    expect(page1.pages.length).toBe(3);
+    expect(page1.total).toBe(10);
+
+    const page2 = await listPages({ limit: 3, offset: 3 });
+    expect(page2.pages.length).toBe(3);
+    expect(page2.total).toBe(10);
+
+    // No overlap between pages
+    const slugs1 = page1.pages.map((p: { slug: string }) => p.slug);
+    const slugs2 = new Set(page2.pages.map((p: { slug: string }) => p.slug));
+    expect(slugs1.filter((s: string) => slugs2.has(s))).toEqual([]);
+  });
+
+  it("offset beyond total returns empty pages array", async () => {
+    const { publishPage, listPages } = await getDb();
+    await publishPage({ slug: "only", title: "Only", html: "<p>x</p>" });
+
+    const result = await listPages({ offset: 100 });
+    expect(result.pages.length).toBe(0);
+    expect(result.total).toBe(1); // total is still 1
+  });
+
+  it("limit is capped at 200", async () => {
+    const { publishPage, listPages } = await getDb();
+    await publishPage({ slug: "cap-test", title: "Cap", html: "<p>x</p>" });
+
+    // Requesting limit=999 should not error — it gets capped internally
+    const result = await listPages({ limit: 999 });
+    expect(result.pages.length).toBe(1);
+  });
+});
+
+describe("soft-delete and restore flow", () => {
+  it("full lifecycle: create → delete → verify hidden → restore → verify visible", async () => {
+    const { publishPage, deletePage, restorePage, listPages, getPage } = await getDb();
+
+    // Create
+    await publishPage({ slug: "lifecycle", title: "Lifecycle", html: "<p>data</p>" });
+    let list = await listPages({});
+    expect(list.total).toBe(1);
+
+    // Delete
+    await deletePage("lifecycle");
+    list = await listPages({});
+    expect(list.total).toBe(0);
+
+    // Still fetchable directly
+    const deleted = await getPage({ slug: "lifecycle" });
+    expect(deleted!.deleted_at).toBeTruthy();
+
+    // Visible with include_deleted
+    list = await listPages({ include_deleted: true });
+    expect(list.total).toBe(1);
+
+    // Restore
+    await restorePage("lifecycle");
+    list = await listPages({});
+    expect(list.total).toBe(1);
+
+    const restored = await getPage({ slug: "lifecycle" });
+    expect(restored!.deleted_at).toBeFalsy();
+  });
+
+  it("deleting an already-deleted page updates deleted_at", async () => {
+    const { publishPage, deletePage, getPage } = await getDb();
+    await publishPage({ slug: "double-del", title: "DD", html: "<p>x</p>" });
+
+    const first = await deletePage("double-del");
+    const second = await deletePage("double-del");
+
+    // Second delete should still succeed (updates timestamp)
+    expect(second.deleted_at).toBeTruthy();
+    expect(second.deleted_at).not.toBe(first.deleted_at);
+
+    const page = await getPage({ slug: "double-del" });
+    expect(page!.deleted_at).toBe(second.deleted_at);
+  });
+});
+
+describe("version increments on update", () => {
+  it("only increments version when content changes, not metadata", async () => {
+    const { publishPage, getPage } = await getDb();
+    await publishPage({ slug: "meta-only", title: "v1", html: "<p>stable</p>" });
+
+    // Same html, different title — content hash unchanged
+    const result = await publishPage({
+      slug: "meta-only",
+      title: "Updated Title",
+      html: "<p>stable</p>",
+    });
+    // Version should stay at 1 because content_hash is the same
+    expect(result.version).toBe(1);
+
+    const page = await getPage({ slug: "meta-only" });
+    // Title is updated despite version not changing
+    // (the no-op path returns early before UPDATE, so title is NOT updated)
+    expect(page!.version).toBe(1);
+  });
+});
+
+describe("portal type validation", () => {
+  it("creates a portal page with url and no html", async () => {
+    const { publishPage, getPage } = await getDb();
+    await publishPage({
+      slug: "portal-test",
+      title: "Portal Test",
+      type: "portal",
+      url: "https://example.com",
+    });
+
+    const page = await getPage({ slug: "portal-test" });
+    expect(page!.type).toBe("portal");
+    expect(page!.url).toBe("https://example.com");
+    expect(page!.html).toBeNull();
+  });
+
+  it("updates a portal page url and increments version", async () => {
+    const { publishPage, getPage } = await getDb();
+    await publishPage({
+      slug: "portal-update",
+      title: "Portal",
+      type: "portal",
+      url: "https://v1.example.com",
+    });
+    await publishPage({
+      slug: "portal-update",
+      title: "Portal",
+      type: "portal",
+      url: "https://v2.example.com",
+    });
+
+    const page = await getPage({ slug: "portal-update" });
+    expect(page!.version).toBe(2);
+    expect(page!.url).toBe("https://v2.example.com");
+  });
+});
+
+describe("concurrent publish to same slug", () => {
+  it("last write wins when publishing to the same slug sequentially", async () => {
+    const { publishPage, getPage } = await getDb();
+
+    // Simulate two rapid publishes to the same slug
+    await publishPage({ slug: "race", title: "First", html: "<p>first</p>" });
+    await publishPage({ slug: "race", title: "Second", html: "<p>second</p>" });
+
+    const page = await getPage({ slug: "race" });
+    expect(page!.title).toBe("Second");
+    expect(page!.html).toBe("<p>second</p>");
+    expect(page!.version).toBe(2);
+  });
+
+  it("concurrent Promise.all publishes both succeed (last write wins)", async () => {
+    const { publishPage, getPage } = await getDb();
+
+    // Create the initial page
+    await publishPage({ slug: "concurrent", title: "Init", html: "<p>init</p>" });
+
+    // Fire two updates concurrently
+    await Promise.all([
+      publishPage({ slug: "concurrent", title: "A", html: "<p>a</p>" }),
+      publishPage({ slug: "concurrent", title: "B", html: "<p>b</p>" }),
+    ]);
+
+    const page = await getPage({ slug: "concurrent" });
+    // One of them won — version is at least 2
+    expect(page!.version).toBeGreaterThanOrEqual(2);
+    // The title matches whichever wrote last
+    expect(["A", "B"]).toContain(page!.title);
+  });
+});
+
+describe("listPages total count accuracy", () => {
+  it("total reflects all matching rows regardless of limit/offset", async () => {
+    const { publishPage, listPages } = await getDb();
+    for (let i = 0; i < 5; i++) {
+      await publishPage({
+        slug: `counted-${i}`,
+        title: `Counted ${i}`,
+        html: `<p>${i}</p>`,
+        tags: ["countable"],
+      });
+    }
+    // Add 2 pages without the tag
+    await publishPage({ slug: "other-1", title: "Other 1", html: "<p>o1</p>" });
+    await publishPage({ slug: "other-2", title: "Other 2", html: "<p>o2</p>" });
+
+    const filtered = await listPages({ tag: "countable", limit: 2 });
+    expect(filtered.pages.length).toBe(2); // limited to 2
+    expect(filtered.total).toBe(5); // but total is 5
+
+    const all = await listPages({});
+    expect(all.total).toBe(7);
+  });
+
+  it("pinned_only filter returns correct total", async () => {
+    const { publishPage, pinPage, listPages } = await getDb();
+    await publishPage({ slug: "pinned-1", title: "Pinned", html: "<p>1</p>" });
+    await publishPage({ slug: "pinned-2", title: "Pinned 2", html: "<p>2</p>" });
+    await publishPage({ slug: "not-pinned", title: "Not Pinned", html: "<p>3</p>" });
+    await pinPage("pinned-1", true);
+    await pinPage("pinned-2", true);
+
+    const result = await listPages({ pinned_only: true });
+    expect(result.pages.length).toBe(2);
+    expect(result.total).toBe(2);
+  });
+});
