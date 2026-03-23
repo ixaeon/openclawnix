@@ -3,6 +3,7 @@ import path from "node:path";
 import { resolveStateDir } from "../config/paths.js";
 import { requireNodeSqlite } from "../memory/sqlite.js";
 import { ensureDir } from "../utils.js";
+import { GETTING_STARTED_PAGE } from "./our-pages-defaults.js";
 
 const SOFT_DELETE_DAYS = 30;
 const HTML_SOFT_LIMIT_BYTES = 5 * 1024 * 1024; // 5 MB — log warning
@@ -87,6 +88,16 @@ export async function initOurPagesDb() {
 function purgeSoftDeleted(db: DbInstance) {
   const cutoff = new Date(Date.now() - SOFT_DELETE_DAYS * 24 * 60 * 60 * 1000).toISOString();
   db.prepare("DELETE FROM our_pages WHERE deleted_at IS NOT NULL AND deleted_at < ?").run(cutoff);
+}
+
+/** Seed default pages when the DB is first initialized and empty. */
+export async function seedDefaultPages() {
+  const db = await getDb();
+  const count = (db.prepare("SELECT COUNT(*) as c FROM our_pages").get() as { c: number }).c;
+  if (count > 0) {
+    return;
+  }
+  await publishPage(GETTING_STARTED_PAGE);
 }
 
 function hashContent(content: string): string {

@@ -637,3 +637,27 @@ describe("listPages total count accuracy", () => {
     expect(result.total).toBe(2);
   });
 });
+
+// ─── seedDefaultPages ─────────────────────────────────────────────────────────
+
+describe("seedDefaultPages", () => {
+  it("seeds getting-started page on empty DB", async () => {
+    const { seedDefaultPages, getPage } = await getDb();
+    await seedDefaultPages();
+    const page = await getPage({ slug: "getting-started" });
+    expect(page).toBeTruthy();
+    expect(page!.title).toBe("Getting Started with Our Pages");
+    expect(page!.type).toBe("inline");
+    expect(page!.tags).toContain("onboarding");
+  });
+
+  it("does not re-seed when DB already has pages", async () => {
+    const { publishPage, seedDefaultPages, listPages } = await getDb();
+    await publishPage({ slug: "existing", title: "Existing", html: "<p>hi</p>" });
+    await seedDefaultPages();
+    const result = await listPages({});
+    // Should have only the existing page, not the getting-started page
+    expect(result.pages.length).toBe(1);
+    expect(result.pages[0].slug).toBe("existing");
+  });
+});
