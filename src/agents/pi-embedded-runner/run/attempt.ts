@@ -1966,6 +1966,10 @@ export async function runEmbeddedAttempt(
       userTimeFormat,
       contextFiles,
       memoryCitationsMode: params.config?.memory?.citations,
+      ourPagesMode:
+        params.config?.ourPages?.injectSystemPrompt === false
+          ? "disabled"
+          : (params.config?.ourPages?.mode ?? "enabled"),
     });
     const systemPromptReport = buildSystemPromptReport({
       source: "run",

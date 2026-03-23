@@ -661,6 +661,8 @@ export const OpenClawSchema = z
             "basePath must start with / and contain only alphanumeric, _, - characters",
           )
           .optional(),
+        injectSystemPrompt: z.boolean().optional(),
+        apiProxy: z.record(z.string(), z.string().url()).optional(),
       })
       .strict()
       .optional(),

@@ -131,6 +131,10 @@ export async function resolveCommandsSystemPromptBundle(
     runtimeInfo,
     sandboxInfo,
     memoryCitationsMode: params.cfg?.memory?.citations,
+    ourPagesMode:
+      params.cfg?.ourPages?.injectSystemPrompt === false
+        ? "disabled"
+        : (params.cfg?.ourPages?.mode ?? "enabled"),
   });
 
   return { systemPrompt, tools, skillsPrompt, bootstrapFiles, injectedFiles, sandboxRuntime };

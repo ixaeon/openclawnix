@@ -57,6 +57,10 @@ export type OurPagesConfig = {
    * The legacy /__openclaw__/our-pages/* path always redirects to this path.
    */
   basePath?: string;
+  /** Inject Our Pages guidance into the agent system prompt. Defaults to true when not disabled. */
+  injectSystemPrompt?: boolean;
+  /** Proxy map for Our Pages API requests: slug → localhost URL. */
+  apiProxy?: Record<string, string>;
 };
 
 export type TalkProviderConfig = {

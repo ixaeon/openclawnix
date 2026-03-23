@@ -779,3 +779,33 @@ describe("buildSubagentSystemPrompt", () => {
     }
   });
 });
+
+describe("Our Pages system prompt injection", () => {
+  const baseParams = { workspaceDir: "/tmp/openclaw" };
+
+  it("injects Our Pages section by default (enabled)", () => {
+    const prompt = buildAgentSystemPrompt(baseParams);
+    expect(prompt).toContain("## Our Pages");
+    expect(prompt).toContain("our_pages_publish");
+  });
+
+  it("injects Our Pages section when mode is read-only", () => {
+    const prompt = buildAgentSystemPrompt({ ...baseParams, ourPagesMode: "read-only" });
+    expect(prompt).toContain("## Our Pages");
+  });
+
+  it("does not inject Our Pages section when mode is disabled", () => {
+    const prompt = buildAgentSystemPrompt({ ...baseParams, ourPagesMode: "disabled" });
+    expect(prompt).not.toContain("## Our Pages");
+  });
+
+  it("does not inject Our Pages section in minimal mode", () => {
+    const prompt = buildAgentSystemPrompt({ ...baseParams, promptMode: "minimal" });
+    expect(prompt).not.toContain("## Our Pages");
+  });
+
+  it("does not inject Our Pages section in none mode", () => {
+    const prompt = buildAgentSystemPrompt({ ...baseParams, promptMode: "none" });
+    expect(prompt).not.toContain("## Our Pages");
+  });
+});

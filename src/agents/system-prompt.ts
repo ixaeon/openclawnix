@@ -219,6 +219,8 @@ export function buildAgentSystemPrompt(params: {
     channel: string;
   };
   memoryCitationsMode?: MemoryCitationsMode;
+  /** Our Pages feature mode. When not "disabled", injects Our Pages guidance. */
+  ourPagesMode?: "enabled" | "read-only" | "disabled";
 }) {
   const acpEnabled = params.acpEnabled !== false;
   const sandboxedRuntime = params.sandboxInfo?.enabled === true;
@@ -572,6 +574,16 @@ export function buildAgentSystemPrompt(params: {
     }),
     ...buildVoiceSection({ isMinimal, ttsHint: params.ttsHint }),
   ];
+
+  // Our Pages guidance: injected when feature is not disabled
+  const ourPagesMode = params.ourPagesMode ?? "enabled";
+  if (ourPagesMode !== "disabled" && !isMinimal) {
+    lines.push(
+      "## Our Pages",
+      "Our Pages is enabled. When you build any HTML page, dashboard, report, or tool, publish it with `our_pages_publish` (type='inline' for HTML content). This keeps all your work discoverable in one place. Do not deliver HTML by writing files to disk.",
+      "",
+    );
+  }
 
   if (extraSystemPrompt) {
     // Use "Subagent Context" header for minimal mode (subagents), otherwise "Group Chat Context"
