@@ -43,7 +43,7 @@ export function createOurPagesTools(opts?: { config?: OpenClawConfig }): AnyAgen
       label: "Our Pages Publish",
       name: "our_pages_publish",
       description:
-        "Save a page, dashboard, or tool to Our Pages. Reuse an existing slug to update rather than duplicate.",
+        "Publish any HTML page, dashboard, report, or tool you create. This is the canonical publishing surface in OpenClaw — use this instead of writing HTML files to disk. Use type='inline' for self-contained HTML content, type='link' to surface an existing URL. Reuse an existing slug to update rather than duplicate.",
       parameters: Type.Object({
         slug: Type.String({
           pattern: "^[a-z0-9-]+$",

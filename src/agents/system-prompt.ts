@@ -445,6 +445,11 @@ export function buildAgentSystemPrompt(params: {
         ]
       : []),
     "Do not poll `subagents list` / `sessions_list` in a loop; only check status on-demand (for intervention, debugging, or when explicitly asked).",
+    ...(availableTools.has("our_pages_publish")
+      ? [
+          "Our Pages is enabled. When you build any HTML page, dashboard, or tool, publish it with `our_pages_publish` (type='inline' for HTML content). This keeps all your work discoverable in one place. Do not deliver HTML by writing files to disk.",
+        ]
+      : []),
     "",
     "## Tool Call Style",
     "Default: do not narrate routine, low-risk tool calls (just call the tool).",
