@@ -82,7 +82,51 @@ export function createOurPagesTools(opts?: { config?: OpenClawConfig }): AnyAgen
         return jsonResult(await deletePage(args.slug));
       },
     });
+
+    tools.push({
+      label: "Our Pages Register API",
+      name: "our_pages_register_api",
+      description:
+        "Register a localhost API proxy so Our Pages content can fetch data without CORS issues. " +
+        "Maps a slug to a localhost URL: requests to /ourpages-api/<slug>/* are forwarded to the target URL.",
+      parameters: Type.Object({
+        slug: Type.String({
+          pattern: "^[a-z0-9-]+$",
+          description: 'Proxy slug, e.g. "my-api"',
+        }),
+        url: Type.String({
+          description: 'Localhost target URL, e.g. "http://localhost:3000/api"',
+        }),
+      }),
+      execute: async (_toolCallId, args) => {
+        return jsonResult(await registerApiProxy(args.slug, args.url));
+      },
+    });
   }
 
   return tools;
+}
+
+async function registerApiProxy(slug: string, url: string): Promise<{ slug: string; url: string }> {
+  // Validate the URL is localhost
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error("Invalid URL");
+  }
+  const host = parsed.hostname;
+  if (host !== "localhost" && host !== "127.0.0.1" && host !== "::1") {
+    throw new Error("API proxy targets must be localhost");
+  }
+
+  const { readConfigFileSnapshotForWrite, writeConfigFile } =
+    await import("../../config/config.js");
+  const { snapshot, writeOptions } = await readConfigFileSnapshotForWrite();
+  const cfg = snapshot.config ?? {};
+  const ourPages = cfg.ourPages ?? {};
+  const apiProxy = { ...ourPages.apiProxy, [slug]: url };
+  const updated = { ...cfg, ourPages: { ...ourPages, apiProxy } };
+  await writeConfigFile(updated, writeOptions);
+  return { slug, url };
 }

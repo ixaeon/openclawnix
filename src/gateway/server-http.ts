@@ -858,6 +858,19 @@ export function createGatewayHttpServer(opts: {
             }),
         });
       }
+      // Our Pages API proxy — forwards /ourpages-api/<slug> to configured localhost targets.
+      requestStages.push({
+        name: "our-pages-api-proxy",
+        run: async () => {
+          const apiProxy = configSnapshot?.ourPages?.apiProxy;
+          if (!apiProxy || Object.keys(apiProxy).length === 0) {
+            return false;
+          }
+          const { proxyOurPagesApiRequest } = await import("./our-pages-proxy.js");
+          return proxyOurPagesApiRequest(req, res, { apiProxy, pathname: requestPath });
+        },
+      });
+
       // Our Pages — served at ourPagesBasePath (default /ourpages) with a redirect from the legacy path.
       // This runs before canvas-auth so pages are reachable without a canvas capability token.
       requestStages.push({
